@@ -8,3 +8,7 @@
 - [**Matches.Tests**](https://github.com/XaLVaUA/Matches/tree/main/Matches.Tests)  
   Unit test project with examples demonstrating usage of the generated types and `Match` methods.
 
+## License
+
+This solution is dedicated to the public domain under the **Unlicense**.  
+See the [LICENSE](LICENSE.txt) file for details.
