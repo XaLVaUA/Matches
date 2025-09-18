@@ -15,7 +15,7 @@
 	<Authors>Yaroslav Nozhenko</Authors>
 	<Description>A C# source generator that automatically creates discriminated union types and Match methods from enums.</Description>
 	<PackageTags>source-generator;codegen</PackageTags>
-	<RepositoryUrl></RepositoryUrl>
+	<RepositoryUrl>https://github.com/XaLVaUA/Matches</RepositoryUrl>
 	<PackageLicenseExpression>Unlicense</PackageLicenseExpression>
 	<IncludeSymbols>false</IncludeSymbols>
 	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
