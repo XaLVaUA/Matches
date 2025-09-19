@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using System;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -14,14 +15,6 @@ public class SourceGenerator : IIncrementalGenerator
     private const string BaseNamespace = "Matches.Generated";
     private const string DiscriminatedUnionAttributeName = "DiscriminatedUnionAttribute";
     private const string DiscriminatedUnionCaseAttributeName = "DiscriminatedUnionCaseAttribute";
-
-    private static readonly SymbolDisplayFormat FullyQualifiedNameDisplayFormat =
-        new 
-        (
-            globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Included,
-            typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
-            miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes
-        );
 
     private static readonly SymbolDisplayFormat FullyQualifiedWithoutGlobalNameDisplayFormat =
         new
@@ -39,7 +32,7 @@ public class SourceGenerator : IIncrementalGenerator
             miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes
         );
 
-    private static readonly SymbolDisplayFormat FullyQualifiedWithGenericsNameDisplayFormat =
+    private static readonly SymbolDisplayFormat FullyQualifiedWithGlobalWithGenericsNameDisplayFormat =
         new
         (
             globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Included,
@@ -174,7 +167,21 @@ public class SourceGenerator : IIncrementalGenerator
 
         var fromCompilationProvider = context.CompilationProvider.Combine(fromSyntaxProvider.Collect());
 
-        context.RegisterSourceOutput(fromCompilationProvider, static (productionContext, syntax) => Handle(productionContext, syntax.Left, syntax.Right));
+        context.RegisterSourceOutput
+        (
+            fromCompilationProvider,
+            static (productionContext, syntax) =>
+            {
+                try
+                {
+                    Handle(productionContext, syntax.Left, syntax.Right);
+                }
+                catch (Exception ex)
+                {
+                    productionContext.ReportDiagnostic(Diagnostic.Create(GenerationFailedDiagnosticDescriptor, null, ex.Message));
+                }
+            }
+        );
     }
 
     private static void Handle(SourceProductionContext context, Compilation compilation, ImmutableArray<EnumDeclarationSyntax> enumDeclArr)
@@ -207,7 +214,7 @@ public class SourceGenerator : IIncrementalGenerator
             {
                 var enumFieldSymbol = CSharpExtensions.GetDeclaredSymbol(semanticModel, enumMemberDecl)!;
 
-                var attribute = enumFieldSymbol.GetAttributes().FirstOrDefault(x => x.AttributeClass?.ToDisplayString(FullyQualifiedNameDisplayFormat) == $"global::{BaseNamespace}.{DiscriminatedUnionCaseAttributeName}");
+                var attribute = enumFieldSymbol.GetAttributes().FirstOrDefault(x => x.AttributeClass?.ToDisplayString(FullyQualifiedWithGlobalNameDisplayFormat) == $"global::{BaseNamespace}.{DiscriminatedUnionCaseAttributeName}");
                 
                 if (attribute is null)
                 {
@@ -246,7 +253,7 @@ public class SourceGenerator : IIncrementalGenerator
                             (
                                 x =>
                                     x.TypeArgumentObj is INamedTypeSymbol typeArgumentSymbol
-                                        ? (x.TypeParameterSymbol, IsSpecified: true, TypeArgumentStr: typeArgumentSymbol.ToDisplayString(FullyQualifiedWithGenericsNameDisplayFormat))
+                                        ? (x.TypeParameterSymbol, IsSpecified: true, TypeArgumentStr: typeArgumentSymbol.ToDisplayString(FullyQualifiedWithGlobalWithGenericsNameDisplayFormat))
                                         : (x.TypeParameterSymbol, IsSpecified: false, TypeArgumentStr: $"T{enumFieldSymbol.Name}{x.TypeParameterSymbol.Name}")
                             )
                             .ToArray();
@@ -297,7 +304,7 @@ public class SourceGenerator : IIncrementalGenerator
                                     constraintTypeSymbol => 
                                         constraintTypeSymbol.IsGenericType
                                             ? GetSymbolNameWithFilledGenericsStr(genericInfos.Select(x => (x.TypeParameterSymbol, x.TypeArgumentStr)), constraintTypeSymbol)
-                                            : constraintTypeSymbol.ToDisplayString(FullyQualifiedWithGenericsNameDisplayFormat)
+                                            : constraintTypeSymbol.ToDisplayString(FullyQualifiedWithGlobalWithGenericsNameDisplayFormat)
                                 )
                         );
 
@@ -308,7 +315,7 @@ public class SourceGenerator : IIncrementalGenerator
                     }
 
                     var typeValueParameterTypeNameStr =
-                        $"{typeSymbol.ToDisplayString(FullyQualifiedNameDisplayFormat)}<{string.Join(", ", genericInfos.Select(x => x.TypeArgumentStr))}>";
+                        $"{typeSymbol.ToDisplayString(FullyQualifiedWithGlobalNameDisplayFormat)}<{string.Join(", ", genericInfos.Select(x => x.TypeArgumentStr))}>";
 
                     choiceInfos.Add((enumFieldSymbol.Name, typeNameStr, typeNameFirstLoweredStr, notSpecifiedGenericInfos.Select(x => x.TypeArgumentStr).ToArray(), constraints.ToArray(), typeValueParameterTypeNameStr));
                 }
@@ -316,11 +323,11 @@ public class SourceGenerator : IIncrementalGenerator
                 {
                     if (!genericArguments.IsDefaultOrEmpty)
                     {
-                        context.ReportDiagnostic(Diagnostic.Create(InvalidDiscriminatedUnionCaseGenericArgumentsDiagnosticDescriptor, enumMemberDecl.GetLocation(), typeSymbol.ToDisplayString(FullyQualifiedWithGenericsNameDisplayFormat)));
+                        context.ReportDiagnostic(Diagnostic.Create(InvalidDiscriminatedUnionCaseGenericArgumentsDiagnosticDescriptor, enumMemberDecl.GetLocation(), typeSymbol.ToDisplayString(FullyQualifiedWithGlobalWithGenericsNameDisplayFormat)));
                         return;
                     }
 
-                    var typeValueParameterTypeNameStr = typeSymbol.ToDisplayString(FullyQualifiedWithGenericsNameDisplayFormat);
+                    var typeValueParameterTypeNameStr = typeSymbol.ToDisplayString(FullyQualifiedWithGlobalWithGenericsNameDisplayFormat);
 
                     choiceInfos.Add((enumFieldSymbol.Name, typeNameStr, typeNameFirstLoweredStr, [], [], typeValueParameterTypeNameStr));
                 }
@@ -433,11 +440,11 @@ public class SourceGenerator : IIncrementalGenerator
                 (
                     genericArgumentSymbol.IsGenericType
                         ? GetSymbolNameWithFilledGenericsStr(genericInfos, genericArgumentSymbol)
-                        : genericArgumentSymbol.ToDisplayString(FullyQualifiedWithGenericsNameDisplayFormat)
+                        : genericArgumentSymbol.ToDisplayString(FullyQualifiedWithGlobalWithGenericsNameDisplayFormat)
                 );
             }
         }
 
-        return $"{symbol.ToDisplayString(FullyQualifiedNameDisplayFormat)}<{string.Join(", ", genericStrList)}>";
+        return $"{symbol.ToDisplayString(FullyQualifiedWithGlobalNameDisplayFormat)}<{string.Join(", ", genericStrList)}>";
     }
 }
