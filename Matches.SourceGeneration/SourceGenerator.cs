@@ -199,7 +199,7 @@ public class SourceGenerator : IIncrementalGenerator
             var enumSymbolNameWithGlobal = enumSymbol.ToDisplayString(FullyQualifiedWithGlobalNameDisplayFormat);
 
             var basicName = enumSymbol.Name.Substring(0, enumSymbol.Name.Length - KindSuffixStr.Length);
-            var basicNameFirstLowered = $"{basicName[0].ToString().ToLower()}{basicName.Substring(1)}";
+            var basicNameFirstLowered = basicName.Length is 1 ? basicName.ToLower() : $"{basicName[0].ToString().ToLower()}{basicName.Substring(1)}";
             var interfaceName = $"I{basicName}";
 
             List<(string ChoiceName, string TypeNameStr, string TypeNameFirstLoweredStr, string[] TypeGenerics, string[] Constraints, string TypeValueParameterTypeNameStr)> choiceInfos = [];
@@ -298,13 +298,14 @@ public class SourceGenerator : IIncrementalGenerator
                         typeArgumentConstraints.AddRange
                         (
                             typeParameterSymbol.ConstraintTypes
-                                .OfType<INamedTypeSymbol>()
                                 .Select
                                 (
                                     constraintTypeSymbol => 
-                                        constraintTypeSymbol.IsGenericType
-                                            ? GetSymbolNameWithFilledGenericsStr(genericInfos.Select(x => (x.TypeParameterSymbol, x.TypeArgumentStr)), constraintTypeSymbol)
-                                            : constraintTypeSymbol.ToDisplayString(FullyQualifiedWithGlobalWithGenericsNameDisplayFormat)
+                                        constraintTypeSymbol is INamedTypeSymbol constraintNamedTypeSymbol
+                                            ? constraintNamedTypeSymbol.IsGenericType
+                                                ? GetSymbolNameWithFilledGenericsStr(genericInfos.Select(x => (x.TypeParameterSymbol, x.TypeArgumentStr)), constraintNamedTypeSymbol)
+                                                : constraintTypeSymbol.ToDisplayString(FullyQualifiedWithGlobalWithGenericsNameDisplayFormat)
+                                            : genericInfos.Where(x => x.TypeParameterSymbol.Name == constraintTypeSymbol.Name).Select(x => x.TypeArgumentStr).First()
                                 )
                         );
 
@@ -425,7 +426,7 @@ public class SourceGenerator : IIncrementalGenerator
                     genericInfos
                         .Where(x => x.TypeParameterSymbol.Name == genericArgument.Name)
                         .Select(x => x.TypeArgumentStr)
-                        .FirstOrDefault();
+                        .First();
 
                 if (argumentTypeSymbol is not null)
                 {

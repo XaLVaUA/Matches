@@ -164,3 +164,22 @@ namespace Module3
 
     public record WarningInfo(int Code, string Message);
 }
+
+[DiscriminatedUnion]
+public enum AnimalKind
+{
+    [DiscriminatedUnionCase(typeof(Dog))]
+    Dog,
+
+    [DiscriminatedUnionCase(typeof(Cat))]
+    Cat,
+
+    [DiscriminatedUnionCase(typeof(Alien<,>), null, null)]
+    Alien
+}
+
+public class Dog;
+
+public struct Cat;
+
+public record Alien<TT, TK> where TT : TK;

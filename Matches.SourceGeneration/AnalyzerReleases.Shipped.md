@@ -14,3 +14,5 @@ MTCHSG004 | Matches.SourceGeneration | Error | MTCHSG004_Matches_SourceGenerator
 MTCHSG005 | Matches.SourceGeneration | Error | MTCHSG005_Matches_SourceGenerator
 MTCHSG006 | Matches.SourceGeneration | Error | MTCHSG006_Matches_SourceGenerator
 MTCHSG007 | Matches.SourceGeneration | Error | MTCHSG007_Matches_SourceGenerator
+
+## Release 2.0.2
