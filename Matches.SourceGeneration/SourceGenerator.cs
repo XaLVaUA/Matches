@@ -561,7 +561,23 @@ public class SourceGenerator : IIncrementalGenerator
                               _ => throw new Exception("Enum value not handled")
                           };
                   
+                      public static void Match{{allGenericsWithResultStr}}({{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Action action{x.ChoiceName}" : $"Action<{x.TypeValueParameterTypeNameStr}> action{x.ChoiceName}"))}}){{allConstraintsStr}}
+                      {
+                          switch ({{basicNameFirstLowered}}.Kind)
+                          {
+                  {{string.Join("\n", choiceInfos.Select(x => $"            case {enumSymbolNameWithGlobal}.{x.ChoiceName}: action{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"GetValue(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered})")}); break;"))}}
+                              default: throw new Exception("Enum value not handled");
+                          };
+                      }
+                  
                       public static System.Threading.Tasks.Task<TResult> MatchAsync{{allGenericsWithResultStr}}({{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Func<System.Threading.Tasks.Task<TResult>> func{x.ChoiceName}" : $"Func<{x.TypeValueParameterTypeNameStr}, System.Threading.Tasks.Task<TResult>> func{x.ChoiceName}"))}}){{allConstraintsStr}} =>
+                          {{basicNameFirstLowered}}.Kind switch
+                          {
+                  {{string.Join("\n", choiceInfos.Select(x => $"            {enumSymbolNameWithGlobal}.{x.ChoiceName} => func{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"GetValue(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered})")}),"))}}
+                              _ => throw new Exception("Enum value not handled")
+                          };
+                          
+                      public static System.Threading.Tasks.Task MatchAsync{{allGenericsWithResultStr}}({{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Func<System.Threading.Tasks.Task> func{x.ChoiceName}" : $"Func<{x.TypeValueParameterTypeNameStr}, System.Threading.Tasks.Task> func{x.ChoiceName}"))}}){{allConstraintsStr}} =>
                           {{basicNameFirstLowered}}.Kind switch
                           {
                   {{string.Join("\n", choiceInfos.Select(x => $"            {enumSymbolNameWithGlobal}.{x.ChoiceName} => func{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"GetValue(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered})")}),"))}}
