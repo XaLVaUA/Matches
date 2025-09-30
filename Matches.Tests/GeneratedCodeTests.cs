@@ -16,7 +16,7 @@ namespace Matches.Tests
         {
             const string message = "hmm";
             var email = new Email("aaa@bbb.com");
-            IContact contact = Contact.GetEmailContact(email);
+            var contact = Contact.GetEmailContact(email);
             var res = SendMessage(contact, message);
             Assert.AreEqual($"'{message}' sent to {email.Address} email address", res);
         }
@@ -26,7 +26,7 @@ namespace Matches.Tests
         {
             const string message = "hmm";
             var phone = new Phone(380, 1234567);
-            IContact contact = Contact.GetPhoneContact(phone);
+            var contact = Contact.GetPhoneContact(phone);
             var res = SendMessage(contact, message);
             Assert.AreEqual($"'{message}' sent to +{phone.Code}{phone.Number} phone number", res);
         }
@@ -36,7 +36,7 @@ namespace Matches.Tests
         {
             const string message = "hmm";
             var webHook = new WebHook(new Uri("https://okak.kot"));
-            IContact contact = Contact.GetWebHookContact(webHook);
+            var contact = Contact.GetWebHookContact(webHook);
             var res = SendMessage(contact, message);
             Assert.AreEqual($"'{message}' sent to {webHook.Uri} webhook uri", res);
         }
@@ -46,7 +46,7 @@ namespace Matches.Tests
         {
             var requestData = new RequestData<string, Dictionary<string, int>, int>(new Dictionary<string, int> { { "ShowersDuringYear", 2 }, { "NutsPerDay", 228 } });
 
-            IWebRequestResult<Dictionary<string, int>, int, WarningInfo> webRequestResult = 
+            var webRequestResult = 
                 WebRequestResult.GetSuccessWebRequestResult<Dictionary<string, int>, int, WarningInfo>(requestData);
 
             var res = GetSummary(webRequestResult);
@@ -59,7 +59,7 @@ namespace Matches.Tests
         {
             List<WarningInfo> warningInfoList = [ new(1337, "you good man"), new(228, "run")];
 
-            IWebRequestResult<Dictionary<string, int>, int, WarningInfo> webRequestResult =
+            var webRequestResult =
                 WebRequestResult.GetWarningsWebRequestResult<Dictionary<string, int>, int, WarningInfo>(warningInfoList);
 
             var res = GetSummary(webRequestResult);
@@ -72,7 +72,7 @@ namespace Matches.Tests
         {
             List<string> errorList = ["help", "me", "please"];
 
-            IWebRequestResult<Dictionary<string, int>, int, WarningInfo> webRequestResult =
+            var webRequestResult =
                 WebRequestResult.GetErrorsWebRequestResult<Dictionary<string, int>, int, WarningInfo>(errorList);
 
             var res = GetSummary(webRequestResult);
@@ -80,19 +80,27 @@ namespace Matches.Tests
             Assert.AreEqual(string.Join(" ! ", errorList), res);
         }
 
+        [TestMethod]
+        public void EmailContactMatchVTest()
+        {
+            var email = new Email("aaa@bbb.com");
+            var contact = Contact.GetEmailContact(email);
+            var res = string.Empty;
+            contact.MatchV(_ => res = "email", _ => res = "phone", _ => res = "webhook");
+            Assert.AreEqual("email", res);
+        }
+
         private static string SendMessage(IContact contact, string message) =>
-            Contact.Match
+            contact.Match
             (
-                contact,
                 email => EmailHelper.SendMessage(email, message),
                 phone => PhoneHelper.SendMessage(phone, message),
                 webHook => WebHookHelper.SendMessage(webHook, message)
             );
 
         private static string GetSummary(IWebRequestResult<Dictionary<string, int>, int, WarningInfo> webRequestResult) => 
-            WebRequestResult.Match
+            webRequestResult.Match
             (
-                webRequestResult,
                 requestData => string.Join(" ; ", requestData.Data.Select(x => $"{x.Key}:{x.Value}")),
                 warningInfoList => string.Join(" | ", warningInfoList.Select(x => $"Code {x.Code}: {x.Message}")),
                 errorList => string.Join(" ! ", errorList)

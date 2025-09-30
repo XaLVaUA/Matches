@@ -161,7 +161,7 @@ public class SourceGenerator : IIncrementalGenerator
                       namespace {{BaseNamespace}};
                       
                       [AttributeUsage(AttributeTargets.Enum)]
-                      public class {{DiscriminatedUnionAttributeName}} : Attribute { }
+                      internal class {{DiscriminatedUnionAttributeName}} : Attribute { }
                       
                       """
                 );
@@ -177,7 +177,7 @@ public class SourceGenerator : IIncrementalGenerator
                       
                       [AttributeUsage(AttributeTargets.Field)]
                       #pragma warning disable CS9113
-                      public class {{DiscriminatedUnionCaseAttributeName}}(Type? type, params Type?[] genericArguments) : Attribute { }
+                      internal class {{DiscriminatedUnionCaseAttributeName}}(Type? type, params Type?[] genericArguments) : Attribute { }
                       #pragma warning restore CS9113
                       #nullable restore
                       """
@@ -189,12 +189,12 @@ public class SourceGenerator : IIncrementalGenerator
                     $"""
                      namespace {BaseNamespace};
                      
-                     public struct {GenericPlaceholderTypeName};
-                     public struct {ClassConstraintPlaceholderTypeName};
-                     public struct {StructConstraintPlaceholderTypeName};
-                     public struct {ConstructorConstraintPlaceholderTypeName};
-                     public struct {NotNullConstraintPlaceholderTypeName};
-                     public struct {UnmanagedConstraintPlaceholderTypeName};
+                     internal struct {GenericPlaceholderTypeName};
+                     internal struct {ClassConstraintPlaceholderTypeName};
+                     internal struct {StructConstraintPlaceholderTypeName};
+                     internal struct {ConstructorConstraintPlaceholderTypeName};
+                     internal struct {NotNullConstraintPlaceholderTypeName};
+                     internal struct {UnmanagedConstraintPlaceholderTypeName};
                      
                      """
                 );
@@ -538,49 +538,46 @@ public class SourceGenerator : IIncrementalGenerator
                                   x =>
                                       x.TypeValueParameterTypeNameStr.Length is 0
                                           ? $"""
-                                                 public static {x.TypeNameStr}{allGenericsStr} Get{x.TypeNameStr}{allGenericsStr}(){allConstraintsStr} =>
-                                                     new();
+                                                 public static {interfaceName}{allGenericsStr} Get{x.TypeNameStr}{allGenericsStr}(){allConstraintsStr} =>
+                                                     new {x.TypeNameStr}{allGenericsStr}();
                                              """
                                           :  $"""
-                                                  public static {x.TypeNameStr}{allGenericsStr} Get{x.TypeNameStr}{allGenericsStr}({x.TypeValueParameterTypeNameStr} value){allConstraintsStr} =>
-                                                      new(value);
-                                              
-                                                  public static {x.TypeValueParameterTypeNameStr} GetValue{allGenericsStr}({x.TypeNameStr}{allGenericsStr} {x.TypeNameFirstLoweredStr}){allConstraintsStr} =>
-                                                      {x.TypeNameFirstLoweredStr}.Value;
+                                                  public static {interfaceName}{allGenericsStr} Get{x.TypeNameStr}{allGenericsStr}({x.TypeValueParameterTypeNameStr} value){allConstraintsStr} =>
+                                                      new {x.TypeNameStr}{allGenericsStr}(value);
                                               """
                               )
                       )
                   }}
                   
-                      public static TResult Match{{allGenericsWithResultStr}}({{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Func<TResult> func{x.ChoiceName}" : $"Func<{x.TypeValueParameterTypeNameStr}, TResult> func{x.ChoiceName}"))}}){{allConstraintsStr}} =>
+                      public static TResult Match{{allGenericsWithResultStr}}(this {{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Func<TResult> func{x.ChoiceName}" : $"Func<{x.TypeValueParameterTypeNameStr}, TResult> func{x.ChoiceName}"))}}){{allConstraintsStr}} =>
                           {{basicNameFirstLowered}}.Kind switch
                           {
                   {{
-                      string.Join("\n", choiceInfos.Select(x => $"            {enumSymbolNameWithGlobal}.{x.ChoiceName} => func{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"GetValue(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered})")}),"))
+                      string.Join("\n", choiceInfos.Select(x => $"            {enumSymbolNameWithGlobal}.{x.ChoiceName} => func{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered}).Value")}),"))
                   }}
                               _ => throw new Exception("Enum value not handled")
                           };
                   
-                      public static void Match{{allGenericsStr}}({{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Action action{x.ChoiceName}" : $"Action<{x.TypeValueParameterTypeNameStr}> action{x.ChoiceName}"))}}){{allConstraintsStr}}
+                      public static void MatchV{{allGenericsStr}}(this {{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Action action{x.ChoiceName}" : $"Action<{x.TypeValueParameterTypeNameStr}> action{x.ChoiceName}"))}}){{allConstraintsStr}}
                       {
                           switch ({{basicNameFirstLowered}}.Kind)
                           {
-                  {{string.Join("\n", choiceInfos.Select(x => $"            case {enumSymbolNameWithGlobal}.{x.ChoiceName}: action{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"GetValue(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered})")}); break;"))}}
+                  {{string.Join("\n", choiceInfos.Select(x => $"            case {enumSymbolNameWithGlobal}.{x.ChoiceName}: action{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered}).Value")}); break;"))}}
                               default: throw new Exception("Enum value not handled");
                           };
                       }
                   
-                      public static System.Threading.Tasks.Task<TResult> MatchAsync{{allGenericsWithResultStr}}({{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Func<System.Threading.Tasks.Task<TResult>> func{x.ChoiceName}" : $"Func<{x.TypeValueParameterTypeNameStr}, System.Threading.Tasks.Task<TResult>> func{x.ChoiceName}"))}}){{allConstraintsStr}} =>
+                      public static System.Threading.Tasks.Task<TResult> MatchAsync{{allGenericsWithResultStr}}(this {{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Func<System.Threading.Tasks.Task<TResult>> func{x.ChoiceName}" : $"Func<{x.TypeValueParameterTypeNameStr}, System.Threading.Tasks.Task<TResult>> func{x.ChoiceName}"))}}){{allConstraintsStr}} =>
                           {{basicNameFirstLowered}}.Kind switch
                           {
-                  {{string.Join("\n", choiceInfos.Select(x => $"            {enumSymbolNameWithGlobal}.{x.ChoiceName} => func{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"GetValue(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered})")}),"))}}
+                  {{string.Join("\n", choiceInfos.Select(x => $"            {enumSymbolNameWithGlobal}.{x.ChoiceName} => func{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered}).Value")}),"))}}
                               _ => throw new Exception("Enum value not handled")
                           };
                           
-                      public static System.Threading.Tasks.Task MatchAsync{{allGenericsStr}}({{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Func<System.Threading.Tasks.Task> func{x.ChoiceName}" : $"Func<{x.TypeValueParameterTypeNameStr}, System.Threading.Tasks.Task> func{x.ChoiceName}"))}}){{allConstraintsStr}} =>
+                      public static System.Threading.Tasks.Task MatchVAsync{{allGenericsStr}}(this {{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Func<System.Threading.Tasks.Task> func{x.ChoiceName}" : $"Func<{x.TypeValueParameterTypeNameStr}, System.Threading.Tasks.Task> func{x.ChoiceName}"))}}){{allConstraintsStr}} =>
                           {{basicNameFirstLowered}}.Kind switch
                           {
-                  {{string.Join("\n", choiceInfos.Select(x => $"            {enumSymbolNameWithGlobal}.{x.ChoiceName} => func{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"GetValue(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered})")}),"))}}
+                  {{string.Join("\n", choiceInfos.Select(x => $"            {enumSymbolNameWithGlobal}.{x.ChoiceName} => func{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered}).Value")}),"))}}
                               _ => throw new Exception("Enum value not handled")
                           };
                   }
