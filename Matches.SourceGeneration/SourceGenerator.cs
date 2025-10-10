@@ -158,11 +158,11 @@ public class SourceGenerator : IIncrementalGenerator
                     $$"""
                       using System;
                       
-                      namespace {{BaseNamespace}};
-                      
-                      [AttributeUsage(AttributeTargets.Enum)]
-                      internal class {{DiscriminatedUnionAttributeName}} : Attribute { }
-                      
+                      namespace {{BaseNamespace}}
+                      {
+                          [AttributeUsage(AttributeTargets.Enum)]
+                          internal class {{DiscriminatedUnionAttributeName}} : Attribute { }
+                      }
                       """
                 );
 
@@ -170,33 +170,33 @@ public class SourceGenerator : IIncrementalGenerator
                 (
                     $"{DiscriminatedUnionCaseAttributeName}.g.cs",
                     $$"""
-                      #nullable enable
                       using System;
                       
-                      namespace {{BaseNamespace}};
-                      
-                      [AttributeUsage(AttributeTargets.Field)]
-                      #pragma warning disable CS9113
-                      internal class {{DiscriminatedUnionCaseAttributeName}}(Type? type, params Type?[] genericArguments) : Attribute { }
-                      #pragma warning restore CS9113
-                      #nullable restore
+                      namespace {{BaseNamespace}}
+                      {
+                          [AttributeUsage(AttributeTargets.Field)]
+                          internal class {{DiscriminatedUnionCaseAttributeName}} : Attribute 
+                          { 
+                              public {{DiscriminatedUnionCaseAttributeName}}(Type type, params Type[] genericArguments) { }
+                          }
+                      }
                       """
                 );
 
                 ctx.AddSource
                 (
                     "Placeholders.g.cs",
-                    $"""
-                     namespace {BaseNamespace};
-                     
-                     internal struct {GenericPlaceholderTypeName};
-                     internal struct {ClassConstraintPlaceholderTypeName};
-                     internal struct {StructConstraintPlaceholderTypeName};
-                     internal struct {ConstructorConstraintPlaceholderTypeName};
-                     internal struct {NotNullConstraintPlaceholderTypeName};
-                     internal struct {UnmanagedConstraintPlaceholderTypeName};
-                     
-                     """
+                    $$"""
+                      namespace {{BaseNamespace}}
+                      {
+                          internal struct {{GenericPlaceholderTypeName}} { };
+                          internal struct {{ClassConstraintPlaceholderTypeName}} { };
+                          internal struct {{StructConstraintPlaceholderTypeName}} { };
+                          internal struct {{ConstructorConstraintPlaceholderTypeName}} { };
+                          internal struct {{NotNullConstraintPlaceholderTypeName}} { };
+                          internal struct {{UnmanagedConstraintPlaceholderTypeName}} { };
+                      }
+                      """
                 );
             }
         );
@@ -494,12 +494,15 @@ public class SourceGenerator : IIncrementalGenerator
             (
                 $"{basicName}.g.cs",
                 $$"""
-                  {{namespaceStr}};
+                  using System;
+                  using System.Threading.Tasks;
                   
-                  public interface {{interfaceName}}{{allGenericsStr}}{{allConstraintsStr}}
+                  {{namespaceStr}}
                   {
-                      {{enumSymbolNameWithGlobal}} Kind { get; }
-                  }
+                      public interface {{interfaceName}}{{allGenericsStr}}{{allConstraintsStr}}
+                      {
+                          {{enumSymbolNameWithGlobal}} Kind { get; }
+                      }
                   
                   {{
                       string.Join
@@ -510,24 +513,31 @@ public class SourceGenerator : IIncrementalGenerator
                               x =>
                                   x.TypeValueParameterTypeNameStr.Length is 0
                                       ? $$"""
-                                          public record {{x.TypeNameStr}}{{allGenericsStr}}() : {{interfaceName}}{{allGenericsStr}}{{allConstraintsStr}}
-                                          {
-                                              public {{enumSymbolNameWithGlobal}} Kind => {{enumSymbolNameWithGlobal}}.{{x.ChoiceName}};
-                                          }
+                                              public class {{x.TypeNameStr}}{{allGenericsStr}} : {{interfaceName}}{{allGenericsStr}}{{allConstraintsStr}}
+                                              {
+                                                  public {{enumSymbolNameWithGlobal}} Kind => {{enumSymbolNameWithGlobal}}.{{x.ChoiceName}};
+                                              }
                                           """
                                       : $$"""
-                                          public record {{x.TypeNameStr}}{{allGenericsStr}}({{x.TypeValueParameterTypeNameStr}} Value) : {{interfaceName}}{{allGenericsStr}}{{allConstraintsStr}}
-                                          {
-                                              public {{enumSymbolNameWithGlobal}} Kind => {{enumSymbolNameWithGlobal}}.{{x.ChoiceName}};
-                                          }
+                                              public class {{x.TypeNameStr}}{{allGenericsStr}} : {{interfaceName}}{{allGenericsStr}}{{allConstraintsStr}}
+                                              {
+                                                  public {{x.TypeValueParameterTypeNameStr}} Value { get; }
+                                                  
+                                                  public {{x.TypeNameStr}}({{x.TypeValueParameterTypeNameStr}} value)
+                                                  {
+                                                      Value = value;
+                                                  }
+                                              
+                                                  public {{enumSymbolNameWithGlobal}} Kind => {{enumSymbolNameWithGlobal}}.{{x.ChoiceName}};
+                                              }
                                           """
 
                           )
                       )
                   }}
                   
-                  public static class {{basicName}}
-                  {
+                      public static class {{basicName}}
+                      {
                   {{
                       string.Join
                       (
@@ -538,50 +548,54 @@ public class SourceGenerator : IIncrementalGenerator
                                   x =>
                                       x.TypeValueParameterTypeNameStr.Length is 0
                                           ? $"""
-                                                 public static {interfaceName}{allGenericsStr} Get{x.TypeNameStr}{allGenericsStr}(){allConstraintsStr} =>
-                                                     new {x.TypeNameStr}{allGenericsStr}();
+                                                     public static {interfaceName}{allGenericsStr} Get{x.TypeNameStr}{allGenericsStr}(){allConstraintsStr} =>
+                                                         new {x.TypeNameStr}{allGenericsStr}();
                                              """
                                           :  $"""
-                                                  public static {interfaceName}{allGenericsStr} Get{x.TypeNameStr}{allGenericsStr}({x.TypeValueParameterTypeNameStr} value){allConstraintsStr} =>
-                                                      new {x.TypeNameStr}{allGenericsStr}(value);
+                                                      public static {interfaceName}{allGenericsStr} Get{x.TypeNameStr}{allGenericsStr}({x.TypeValueParameterTypeNameStr} value){allConstraintsStr} =>
+                                                          new {x.TypeNameStr}{allGenericsStr}(value);
                                               """
                               )
                       )
                   }}
                   
-                      public static TResult Match{{allGenericsWithResultStr}}(this {{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Func<TResult> func{x.ChoiceName}" : $"Func<{x.TypeValueParameterTypeNameStr}, TResult> func{x.ChoiceName}"))}}){{allConstraintsStr}} =>
-                          {{basicNameFirstLowered}}.Kind switch
+                          public static TResult Match{{allGenericsWithResultStr}}(this {{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Func<TResult> func{x.ChoiceName}" : $"Func<{x.TypeValueParameterTypeNameStr}, TResult> func{x.ChoiceName}"))}}){{allConstraintsStr}}
                           {
-                  {{
-                      string.Join("\n", choiceInfos.Select(x => $"            {enumSymbolNameWithGlobal}.{x.ChoiceName} => func{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered}).Value")}),"))
-                  }}
-                              _ => throw new Exception("Enum value not handled")
-                          };
+                              switch ({{basicNameFirstLowered}}.Kind)
+                              {
+                  {{string.Join("\n", choiceInfos.Select(x => $"                case {enumSymbolNameWithGlobal}.{x.ChoiceName}: return func{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered}).Value")});"))}}
+                                  default: throw new Exception("Enum value not handled");
+                              };
+                          }
+
+                          public static void MatchV{{allGenericsStr}}(this {{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Action action{x.ChoiceName}" : $"Action<{x.TypeValueParameterTypeNameStr}> action{x.ChoiceName}"))}}){{allConstraintsStr}}
+                          {
+                              switch ({{basicNameFirstLowered}}.Kind)
+                              {
+                  {{string.Join("\n", choiceInfos.Select(x => $"                case {enumSymbolNameWithGlobal}.{x.ChoiceName}: action{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered}).Value")}); break;"))}}
+                                  default: throw new Exception("Enum value not handled");
+                              };
+                          }
                   
-                      public static void MatchV{{allGenericsStr}}(this {{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Action action{x.ChoiceName}" : $"Action<{x.TypeValueParameterTypeNameStr}> action{x.ChoiceName}"))}}){{allConstraintsStr}}
-                      {
-                          switch ({{basicNameFirstLowered}}.Kind)
+                          public static System.Threading.Tasks.Task<TResult> MatchAsync{{allGenericsWithResultStr}}(this {{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Func<System.Threading.Tasks.Task<TResult>> func{x.ChoiceName}" : $"Func<{x.TypeValueParameterTypeNameStr}, System.Threading.Tasks.Task<TResult>> func{x.ChoiceName}"))}}){{allConstraintsStr}}
                           {
-                  {{string.Join("\n", choiceInfos.Select(x => $"            case {enumSymbolNameWithGlobal}.{x.ChoiceName}: action{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered}).Value")}); break;"))}}
-                              default: throw new Exception("Enum value not handled");
-                          };
-                      }
-                  
-                      public static System.Threading.Tasks.Task<TResult> MatchAsync{{allGenericsWithResultStr}}(this {{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Func<System.Threading.Tasks.Task<TResult>> func{x.ChoiceName}" : $"Func<{x.TypeValueParameterTypeNameStr}, System.Threading.Tasks.Task<TResult>> func{x.ChoiceName}"))}}){{allConstraintsStr}} =>
-                          {{basicNameFirstLowered}}.Kind switch
-                          {
-                  {{string.Join("\n", choiceInfos.Select(x => $"            {enumSymbolNameWithGlobal}.{x.ChoiceName} => func{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered}).Value")}),"))}}
-                              _ => throw new Exception("Enum value not handled")
-                          };
+                              switch ({{basicNameFirstLowered}}.Kind)
+                              {
+                  {{string.Join("\n", choiceInfos.Select(x => $"                case {enumSymbolNameWithGlobal}.{x.ChoiceName}: return func{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered}).Value")});"))}}
+                                  default: throw new Exception("Enum value not handled");
+                              };
+                          }
                           
-                      public static System.Threading.Tasks.Task MatchVAsync{{allGenericsStr}}(this {{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Func<System.Threading.Tasks.Task> func{x.ChoiceName}" : $"Func<{x.TypeValueParameterTypeNameStr}, System.Threading.Tasks.Task> func{x.ChoiceName}"))}}){{allConstraintsStr}} =>
-                          {{basicNameFirstLowered}}.Kind switch
+                          public static System.Threading.Tasks.Task MatchVAsync{{allGenericsStr}}(this {{interfaceName}}{{allGenericsStr}} {{basicNameFirstLowered}}, {{string.Join(", ", choiceInfos.Select(x => x.TypeValueParameterTypeNameStr.Length is 0 ? $"Func<System.Threading.Tasks.Task> func{x.ChoiceName}" : $"Func<{x.TypeValueParameterTypeNameStr}, System.Threading.Tasks.Task> func{x.ChoiceName}"))}}){{allConstraintsStr}}
                           {
-                  {{string.Join("\n", choiceInfos.Select(x => $"            {enumSymbolNameWithGlobal}.{x.ChoiceName} => func{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered}).Value")}),"))}}
-                              _ => throw new Exception("Enum value not handled")
-                          };
+                              switch ({{basicNameFirstLowered}}.Kind)
+                              {
+                  {{string.Join("\n", choiceInfos.Select(x => $"                case {enumSymbolNameWithGlobal}.{x.ChoiceName}: return func{x.ChoiceName}({(x.TypeValueParameterTypeNameStr.Length is 0 ? string.Empty : $"(({x.TypeNameStr}{allGenericsStr}){basicNameFirstLowered}).Value")});"))}}
+                                  default: throw new Exception("Enum value not handled");
+                              };
+                          }
+                      }
                   }
-                  
                   """
             );
         }
