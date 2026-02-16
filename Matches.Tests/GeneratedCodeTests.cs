@@ -90,12 +90,30 @@ namespace Matches.Tests
             Assert.AreEqual("email", res);
         }
 
+        [TestMethod]
+        public void EmailContactRTest()
+        {
+            const string message = "hmm";
+            var email = new Email("aaa@bbb.com");
+            var contact = Contact.GetEmailContact(email);
+            var res = SendMessageR(contact, message);
+            Assert.AreEqual($"'{message}' sent to {email.Address} email address", res);
+        }
+
         private static string SendMessage(IContact contact, string message) =>
             contact.Match
             (
                 email => EmailHelper.SendMessage(email, message),
                 phone => PhoneHelper.SendMessage(phone, message),
                 webHook => WebHookHelper.SendMessage(webHook, message)
+            );
+
+        private static string SendMessageR(IContact contact, string message) =>
+            contact.MatchR
+            (
+                email => EmailHelper.SendMessage(email.Value, message),
+                phone => PhoneHelper.SendMessage(phone.Value, message),
+                webHook => WebHookHelper.SendMessage(webHook.Value, message)
             );
 
         private static string GetSummary(IWebRequestResult<Dictionary<string, int>, int, WarningInfo> webRequestResult) => 

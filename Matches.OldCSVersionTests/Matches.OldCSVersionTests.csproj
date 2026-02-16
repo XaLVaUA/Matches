@@ -1,15 +1,40 @@
 ﻿<Project Sdk="MSTest.Sdk/3.6.4">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <LangVersion>7.3</LangVersion>
     <TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
   </PropertyGroup>
 
   <ItemGroup>
-	  <ProjectReference Include="..\Matches.SourceGeneration\Matches.SourceGeneration.csproj"
-	                    OutputItemType="Analyzer"
-	                    ReferenceOutputAssembly="false" />
+	  <ProjectReference Include="..\Matches.SourceGeneration\Matches.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="Microsoft.Testing.Extensions.CodeCoverage" Version="18.4.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="Microsoft.Testing.Extensions.TrxReport" Version="2.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="MSTest.Analyzers" Version="4.1.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="MSTest.TestAdapter" Version="4.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="MSTest.TestFramework" Version="4.1.0" />
   </ItemGroup>
 
 </Project>
